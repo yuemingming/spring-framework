@@ -41,6 +41,7 @@ import org.springframework.util.ObjectUtils;
  * @see Resource#getInputStream()
  * @see java.io.Reader
  * @see java.nio.charset.Charset
+ * 主要功能：按照设置的编码对Spring的输入流进行编码
  */
 public class EncodedResource implements InputStreamSource {
 
@@ -134,6 +135,7 @@ public class EncodedResource implements InputStreamSource {
 	 * @throws IOException if opening the Reader failed
 	 * @see #requiresReader()
 	 * @see #getInputStream()
+	 * 当设置了编码属性时，Spring会使用相应的编码作为输入流的编码
 	 */
 	public Reader getReader() throws IOException {
 		if (this.charset != null) {

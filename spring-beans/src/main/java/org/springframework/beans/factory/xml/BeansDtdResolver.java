@@ -49,7 +49,13 @@ public class BeansDtdResolver implements EntityResolver {
 
 	private static final Log logger = LogFactory.getLog(BeansDtdResolver.class);
 
-
+	/**
+	 * 获取DTD约束文件的InputSource
+ 	 * @param publicId
+	 * @param systemId
+	 * @return
+	 * @throws IOException
+	 */
 	@Override
 	@Nullable
 	public InputSource resolveEntity(String publicId, @Nullable String systemId) throws IOException {

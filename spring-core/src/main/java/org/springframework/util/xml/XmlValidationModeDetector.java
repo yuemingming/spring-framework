@@ -95,6 +95,7 @@ public class XmlValidationModeDetector {
 			String content;
 			while ((content = reader.readLine()) != null) {
 				content = consumeCommentTokens(content);
+				//如果读取行是注释或者为空则略过，继续下一行
 				if (this.inComment || !StringUtils.hasText(content)) {
 					continue;
 				}
@@ -107,7 +108,7 @@ public class XmlValidationModeDetector {
 					break;
 				}
 			}
-			return (isDtdValidated ? VALIDATION_DTD : VALIDATION_XSD);
+			return (isDtdValidated ? VALIDATION_DTD : VALIDATION_XSD);//如果没有在文件中找到具体指定的约束模式，则默认使用XSD
 		}
 		catch (CharConversionException ex) {
 			// Choked on some character encoding...
