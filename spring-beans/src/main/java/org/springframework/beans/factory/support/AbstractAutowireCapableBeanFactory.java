@@ -116,6 +116,7 @@ import org.springframework.util.StringUtils;
  * @see RootBeanDefinition
  * @see DefaultListableBeanFactory
  * @see BeanDefinitionRegistry
+ * 综合AbstractbeanFactory并对接口AutowireCapableBeanFactory进行实现
  */
 public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFactory
 		implements AutowireCapableBeanFactory {
@@ -170,7 +171,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	public AbstractAutowireCapableBeanFactory() {
 		super();
-		ignoreDependencyInterface(BeanNameAware.class);
+		ignoreDependencyInterface(BeanNameAware.class);//自动装配时，忽略给定的依赖接口，典型的应用是通过其他方式解析Application上下文注册依赖，类似于BeanFactory
+		//通过BeanFactoryAware进行注入或者ApplicationContext通过ApplicationContextAware进行注入
 		ignoreDependencyInterface(BeanFactoryAware.class);
 		ignoreDependencyInterface(BeanClassLoaderAware.class);
 	}

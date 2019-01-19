@@ -112,6 +112,7 @@ import org.springframework.util.StringUtils;
  * @see #addBeanPostProcessor
  * @see #getBean
  * @see #resolveDependency
+ * 综合上面所有功能，主要是对Bean注册后进行处理
  */
 @SuppressWarnings("serial")
 public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory
