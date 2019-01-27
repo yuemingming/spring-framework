@@ -35,6 +35,7 @@ import org.springframework.util.ClassUtils;
  *
  * @author Juergen Hoeller
  * @since 2.5
+ * 静态代理解析类
  */
 class LoadTimeWeaverBeanDefinitionParser extends AbstractSingleBeanDefinitionParser {
 
@@ -75,7 +76,7 @@ class LoadTimeWeaverBeanDefinitionParser extends AbstractSingleBeanDefinitionPar
 
 		if (isAspectJWeavingEnabled(element.getAttribute(ASPECTJ_WEAVING_ATTRIBUTE), parserContext)) {
 			if (!parserContext.getRegistry().containsBeanDefinition(ASPECTJ_WEAVING_ENABLER_BEAN_NAME)) {
-				RootBeanDefinition def = new RootBeanDefinition(ASPECTJ_WEAVING_ENABLER_CLASS_NAME);
+				RootBeanDefinition def = new RootBeanDefinition(ASPECTJ_WEAVING_ENABLER_CLASS_NAME);//将org.springframework.context.weaving.AspectJWeavingEnabler封装在BeanDefinition中注册
 				parserContext.registerBeanComponent(
 						new BeanComponentDefinition(def, ASPECTJ_WEAVING_ENABLER_BEAN_NAME));
 			}
@@ -94,7 +95,7 @@ class LoadTimeWeaverBeanDefinitionParser extends AbstractSingleBeanDefinitionPar
 			return false;
 		}
 		else {
-			// Determine default...
+			// Determine default...自动检测
 			ClassLoader cl = parserContext.getReaderContext().getBeanClassLoader();
 			return (cl != null && cl.getResource(AspectJWeavingEnabler.ASPECTJ_AOP_XML_RESOURCE) != null);
 		}
