@@ -51,6 +51,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 
 	@Nullable
 	private BeanFactoryAdvisorRetrievalHelper advisorRetrievalHelper;
+	private List<Advisor> advisorsThatCanApply;
 
 
 	@Override
@@ -124,7 +125,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 		ProxyCreationContext.setCurrentProxiedBeanName(beanName);
 		try {
 			//过滤已经得到的advisors
-			return AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass);
+			return advisorsThatCanApply;
 		}
 		finally {
 			ProxyCreationContext.setCurrentProxiedBeanName(null);

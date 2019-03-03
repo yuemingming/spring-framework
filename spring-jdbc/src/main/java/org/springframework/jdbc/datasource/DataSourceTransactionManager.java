@@ -236,8 +236,10 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 	protected Object doGetTransaction() {
 		DataSourceTransactionObject txObject = new DataSourceTransactionObject();
 		txObject.setSavepointAllowed(isNestedTransactionAllowed());
+		//如果当前线程已经记录数据库连接，则使用原链接
 		ConnectionHolder conHolder =
 				(ConnectionHolder) TransactionSynchronizationManager.getResource(obtainDataSource());
+		//false表示非新创建连接
 		txObject.setConnectionHolder(conHolder, false);
 		return txObject;
 	}
@@ -250,6 +252,18 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 
 	/**
 	 * This implementation sets the isolation level but ignores the timeout.
+	 * 构造transaction，包括设置ConnectionHolder、隔离级别、timeout
+	 * 如果是新连接，绑定到当前线程
+	 * 1.尝试获取连接
+	 * 	当然不是每次都会获取新的连接，如果当前线程中的connectionHolder已经存在，则没有必要再次获取，或者对于事务同步表示设置为true表示需要重新获取连接。
+	 * 2.设置隔离级别以及只读表示
+	 * 	Spring中针对只读操作做了一些处理，但是核心的实现是设置connection上的readOnly属性。同样，对于隔离级别的控制也是交由connection去控制的。
+	 * 3.更改默认的提交设置
+	 * 	如果事务属性是自动提交，那么需要更改这种配置，而将提交操作委托给Spring来处理。
+	 * 4.设置标志位，表示当前连接已经被事务激活
+	 * 5.设置过期时间
+	 * 6.将connectionHolder绑定到当前线程
+	 *
 	 */
 	@Override
 	protected void doBegin(Object transaction, TransactionDefinition definition) {
@@ -265,7 +279,7 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 				}
 				txObject.setConnectionHolder(new ConnectionHolder(newCon), true);
 			}
-
+			//设置隔离级别
 			txObject.getConnectionHolder().setSynchronizedWithTransaction(true);
 			con = txObject.getConnectionHolder().getConnection();
 
@@ -275,6 +289,7 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 			// Switch to manual commit if necessary. This is very expensive in some JDBC drivers,
 			// so we don't want to do it unnecessarily (for example if we've explicitly
 			// configured the connection pool to set it already).
+			//更改自动提交设置，由Spring控制提交
 			if (con.getAutoCommit()) {
 				txObject.setMustRestoreAutoCommit(true);
 				if (logger.isDebugEnabled()) {
@@ -284,6 +299,7 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 			}
 
 			prepareTransactionalConnection(con, definition);
+			//设置判断当前线程是否存在事务的依据
 			txObject.getConnectionHolder().setTransactionActive(true);
 
 			int timeout = determineTimeout(definition);
@@ -293,6 +309,7 @@ public class DataSourceTransactionManager extends AbstractPlatformTransactionMan
 
 			// Bind the connection holder to the thread.
 			if (txObject.isNewConnectionHolder()) {
+				//将当前获取到的连接绑定到当前线程
 				TransactionSynchronizationManager.bindResource(obtainDataSource(), txObject.getConnectionHolder());
 			}
 		}
