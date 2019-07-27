@@ -70,20 +70,25 @@ public class PathVariableMethodArgumentResolver extends AbstractNamedValueMethod
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
+		//如果无 @PathVariable 注解
 		if (!parameter.hasParameterAnnotation(PathVariable.class)) {
 			return false;
 		}
+		// Map 类型，有 @pathVariable 注解，但是有 name 属性
 		if (Map.class.isAssignableFrom(parameter.nestedIfOptional().getNestedParameterType())) {
 			PathVariable pathVariable = parameter.getParameterAnnotation(PathVariable.class);
 			return (pathVariable != null && StringUtils.hasText(pathVariable.value()));
 		}
+		// 有 @pathVariable 注解
 		return true;
 	}
 
 	@Override
 	protected NamedValueInfo createNamedValueInfo(MethodParameter parameter) {
+		// 获得 @PathVariable 注解
 		PathVariable ann = parameter.getParameterAnnotation(PathVariable.class);
 		Assert.state(ann != null, "No PathVariable annotation");
+		//创建 PathVariableNamedValueInfo 对象
 		return new PathVariableNamedValueInfo(ann);
 	}
 
@@ -91,34 +96,39 @@ public class PathVariableMethodArgumentResolver extends AbstractNamedValueMethod
 	@SuppressWarnings("unchecked")
 	@Nullable
 	protected Object resolveName(String name, MethodParameter parameter, NativeWebRequest request) throws Exception {
-		Map<String, String> uriTemplateVars = (Map<String, String>) request.getAttribute(
-				HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
+		//获得路径参数
+		Map<String, String> uriTemplateVars = (Map<String, String>) request
+				.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
+		//获得参数值
 		return (uriTemplateVars != null ? uriTemplateVars.get(name) : null);
 	}
 
 	@Override
 	protected void handleMissingValue(String name, MethodParameter parameter) throws ServletRequestBindingException {
+		// 抛出 MissingPathVariableException 异常
 		throw new MissingPathVariableException(name, parameter);
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
 	protected void handleResolvedValue(@Nullable Object arg, String name, MethodParameter parameter,
-			@Nullable ModelAndViewContainer mavContainer, NativeWebRequest request) {
-
+									   @Nullable ModelAndViewContainer mavContainer, NativeWebRequest request) {
+		// 获得 pathVars
 		String key = View.PATH_VARIABLES;
 		int scope = RequestAttributes.SCOPE_REQUEST;
 		Map<String, Object> pathVars = (Map<String, Object>) request.getAttribute(key, scope);
+		// 如果不存在 pathVars ，则进行创建
 		if (pathVars == null) {
 			pathVars = new HashMap<>();
 			request.setAttribute(key, pathVars, scope);
 		}
+		// 添加到 name + arg 到 pathVars 中
 		pathVars.put(name, arg);
 	}
 
 	@Override
-	public void contributeMethodArgument(MethodParameter parameter, Object value,
-			UriComponentsBuilder builder, Map<String, Object> uriVariables, ConversionService conversionService) {
+	public void contributeMethodArgument(MethodParameter parameter, Object value, UriComponentsBuilder builder,
+										 Map<String, Object> uriVariables, ConversionService conversionService) {
 
 		if (Map.class.isAssignableFrom(parameter.nestedIfOptional().getNestedParameterType())) {
 			return;
@@ -134,11 +144,9 @@ public class PathVariableMethodArgumentResolver extends AbstractNamedValueMethod
 	protected String formatUriValue(@Nullable ConversionService cs, @Nullable TypeDescriptor sourceType, Object value) {
 		if (value instanceof String) {
 			return (String) value;
-		}
-		else if (cs != null) {
+		} else if (cs != null) {
 			return (String) cs.convert(value, sourceType, STRING_TYPE_DESCRIPTOR);
-		}
-		else {
+		} else {
 			return value.toString();
 		}
 	}

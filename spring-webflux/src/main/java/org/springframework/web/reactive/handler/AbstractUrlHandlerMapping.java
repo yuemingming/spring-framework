@@ -55,6 +55,10 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 
 	private boolean lazyInitHandlers = false;
 
+	/**
+	 * 路径和处理器映射
+	 * KEY:路径
+	 */
 	private final Map<PathPattern, Object> handlerMap = new LinkedHashMap<>();
 
 
@@ -84,12 +88,13 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 
 	@Override
 	public Mono<Object> getHandlerInternal(ServerWebExchange exchange) {
+		//获得请求路径
 		PathContainer lookupPath = exchange.getRequest().getPath().pathWithinApplication();
 		Object handler;
 		try {
+			//获得处理器
 			handler = lookupHandler(lookupPath, exchange);
-		}
-		catch (Exception ex) {
+		} catch (Exception ex) {
 			return Mono.error(ex);
 		}
 		return Mono.justOrEmpty(handler);
@@ -100,36 +105,36 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 	 * <p>Supports direct matches, e.g. a registered "/test" matches "/test",
 	 * and various path pattern matches, e.g. a registered "/t*" matches
 	 * both "/test" and "/team". For details, see the PathPattern class.
+	 *
 	 * @param lookupPath the URL the handler is mapped to
-	 * @param exchange the current exchange
+	 * @param exchange   the current exchange
 	 * @return the associated handler instance, or {@code null} if not found
 	 * @see org.springframework.web.util.pattern.PathPattern
 	 */
 	@Nullable
 	protected Object lookupHandler(PathContainer lookupPath, ServerWebExchange exchange) throws Exception {
-
-		List<PathPattern> matches = this.handlerMap.keySet().stream()
-				.filter(key -> key.matches(lookupPath))
-				.collect(Collectors.toList());
-
+		//从 handlerMap 中，直接匹配处理器
+		List<PathPattern> matches =
+				this.handlerMap.keySet().stream().filter(key -> key.matches(lookupPath)).collect(Collectors.toList());
+		//如果没有匹配到，则直接返回 null
 		if (matches.isEmpty()) {
 			return null;
 		}
-
+		//如果匹配到的处理器大于 1，则进行排序
 		if (matches.size() > 1) {
 			matches.sort(PathPattern.SPECIFICITY_COMPARATOR);
 			if (logger.isTraceEnabled()) {
 				logger.debug(exchange.getLogPrefix() + "Matching patterns " + matches);
 			}
 		}
-
+		//取匹配结果最好的
 		PathPattern pattern = matches.get(0);
 		PathContainer pathWithinMapping = pattern.extractPathWithinPattern(lookupPath);
 		return handleMatch(this.handlerMap.get(pattern), pattern, pathWithinMapping, exchange);
 	}
 
 	private Object handleMatch(Object handler, PathPattern bestMatch, PathContainer pathWithinMapping,
-			ServerWebExchange exchange) {
+							   ServerWebExchange exchange) {
 
 		// Bean name or resolved handler?
 		if (handler instanceof String) {
@@ -150,7 +155,8 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 	 * Validate the given handler against the current request.
 	 * <p>The default implementation is empty. Can be overridden in subclasses,
 	 * for example to enforce specific preconditions expressed in URL mappings.
-	 * @param handler the handler object to validate
+	 *
+	 * @param handler  the handler object to validate
 	 * @param exchange current exchange
 	 */
 	@SuppressWarnings("UnusedParameters")
@@ -159,24 +165,28 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 
 	/**
 	 * Register the specified handler for the given URL paths.
+	 *
 	 * @param urlPaths the URLs that the bean should be mapped to
 	 * @param beanName the name of the handler bean
-	 * @throws BeansException if the handler couldn't be registered
+	 * @throws BeansException        if the handler couldn't be registered
 	 * @throws IllegalStateException if there is a conflicting handler registered
 	 */
 	protected void registerHandler(String[] urlPaths, String beanName) throws BeansException, IllegalStateException {
 		Assert.notNull(urlPaths, "URL path array must not be null");
+		//遍历 urlPath 数组
 		for (String urlPath : urlPaths) {
+			//注册处理器
 			registerHandler(urlPath, beanName);
 		}
 	}
 
 	/**
 	 * Register the specified handler for the given URL path.
+	 *
 	 * @param urlPath the URL the bean should be mapped to
 	 * @param handler the handler instance or handler bean name String
-	 * (a bean name will automatically be resolved into the corresponding handler bean)
-	 * @throws BeansException if the handler couldn't be registered
+	 *                (a bean name will automatically be resolved into the corresponding handler bean)
+	 * @throws BeansException        if the handler couldn't be registered
 	 * @throws IllegalStateException if there is a conflicting handler registered
 	 */
 	protected void registerHandler(String urlPath, Object handler) throws BeansException, IllegalStateException {
@@ -185,6 +195,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 		Object resolvedHandler = handler;
 
 		// Parse path pattern
+		//去重判断
 		urlPath = prependLeadingSlash(urlPath);
 		PathPattern pattern = getPathPatternParser().parse(urlPath);
 		if (this.handlerMap.containsKey(pattern)) {
@@ -192,11 +203,12 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 			if (existingHandler != null && existingHandler != resolvedHandler) {
 				throw new IllegalStateException(
 						"Cannot map " + getHandlerDescription(handler) + " to [" + urlPath + "]: " +
-						"there is already " + getHandlerDescription(existingHandler) + " mapped.");
+								"there is already " + getHandlerDescription(existingHandler) + " mapped.");
 			}
 		}
 
 		// Eagerly resolve handler if referencing singleton via name.
+		// <1> 如果非延迟加载，并且 handler 为 String 类型，并且还是单例，则去获取 String 对应的 Bean 对象
 		if (!this.lazyInitHandlers && handler instanceof String) {
 			String handlerName = (String) handler;
 			if (obtainApplicationContext().isSingleton(handlerName)) {
@@ -219,8 +231,7 @@ public abstract class AbstractUrlHandlerMapping extends AbstractHandlerMapping {
 	private static String prependLeadingSlash(String pattern) {
 		if (StringUtils.hasLength(pattern) && !pattern.startsWith("/")) {
 			return "/" + pattern;
-		}
-		else {
+		} else {
 			return pattern;
 		}
 	}

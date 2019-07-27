@@ -92,34 +92,35 @@ public class ServletInvocableHandlerMethod extends InvocableHandlerMethod {
 	/**
 	 * Invoke the method and handle the return value through one of the
 	 * configured {@link HandlerMethodReturnValueHandler HandlerMethodReturnValueHandlers}.
-	 * @param webRequest the current request
+	 *
+	 * @param webRequest   the current request
 	 * @param mavContainer the ModelAndViewContainer for this request
 	 * @param providedArgs "given" arguments matched by type (not resolved)
 	 */
 	public void invokeAndHandle(ServletWebRequest webRequest, ModelAndViewContainer mavContainer,
-			Object... providedArgs) throws Exception {
-
+								Object... providedArgs) throws Exception {
+		//执行调用
 		Object returnValue = invokeForRequest(webRequest, mavContainer, providedArgs);
+		//设置相应状态
 		setResponseStatus(webRequest);
-
-		if (returnValue == null) {
+		//设置 ModelAndViewContainer 为请求已处理，返回
+		if (returnValue == null) {//返回 null
 			if (isRequestNotModified(webRequest) || getResponseStatus() != null || mavContainer.isRequestHandled()) {
 				mavContainer.setRequestHandled(true);
 				return;
 			}
-		}
-		else if (StringUtils.hasText(getResponseStatusReason())) {
+		} else if (StringUtils.hasText(getResponseStatusReason())) {// 有 responseStatusReason
 			mavContainer.setRequestHandled(true);
 			return;
 		}
-
+		// 设置 ModelAndViewContainer 为请求未处理
 		mavContainer.setRequestHandled(false);
 		Assert.state(this.returnValueHandlers != null, "No return value handlers");
+		//处理器返回值
 		try {
-			this.returnValueHandlers.handleReturnValue(
-					returnValue, getReturnValueType(returnValue), mavContainer, webRequest);
-		}
-		catch (Exception ex) {
+			this.returnValueHandlers
+					.handleReturnValue(returnValue, getReturnValueType(returnValue), mavContainer, webRequest);
+		} catch (Exception ex) {
 			if (logger.isTraceEnabled()) {
 				logger.trace(formatErrorForReturnValue(returnValue), ex);
 			}
@@ -131,28 +132,31 @@ public class ServletInvocableHandlerMethod extends InvocableHandlerMethod {
 	 * Set the response status according to the {@link ResponseStatus} annotation.
 	 */
 	private void setResponseStatus(ServletWebRequest webRequest) throws IOException {
+		//获得状态码
+		//此处想要非空，需要通过 @ResponseStatus 注解方法
 		HttpStatus status = getResponseStatus();
-		if (status == null) {
+		if (status == null) {//若为空，则直接返回
 			return;
 		}
-
+		//设置响应状态码
 		HttpServletResponse response = webRequest.getResponse();
 		if (response != null) {
 			String reason = getResponseStatusReason();
-			if (StringUtils.hasText(reason)) {
+			if (StringUtils.hasText(reason)) {//有 reason,则设置 status + reason
 				response.sendError(status.value(), reason);
-			}
-			else {
+			} else {//无 reason ，则进设置 status
 				response.setStatus(status.value());
 			}
 		}
 
 		// To be picked up by RedirectView
+		//为了 RedirectView ，所以进行设置
 		webRequest.getRequest().setAttribute(View.RESPONSE_STATUS_ATTRIBUTE, status);
 	}
 
 	/**
 	 * Does the given request qualify as "not modified"?
+	 *
 	 * @see ServletWebRequest#checkNotModified(long)
 	 * @see ServletWebRequest#checkNotModified(String)
 	 */
@@ -162,8 +166,7 @@ public class ServletInvocableHandlerMethod extends InvocableHandlerMethod {
 
 	private String formatErrorForReturnValue(@Nullable Object returnValue) {
 		return "Error handling return value=[" + returnValue + "]" +
-				(returnValue != null ? ", type=" + returnValue.getClass().getName() : "") +
-				" in " + toString();
+				(returnValue != null ? ", type=" + returnValue.getClass().getName() : "") + " in " + toString();
 	}
 
 	/**
@@ -191,8 +194,7 @@ public class ServletInvocableHandlerMethod extends InvocableHandlerMethod {
 			super((Callable<Object>) () -> {
 				if (result instanceof Exception) {
 					throw (Exception) result;
-				}
-				else if (result instanceof Throwable) {
+				} else if (result instanceof Throwable) {
 					throw new NestedServletException("Async processing failed", (Throwable) result);
 				}
 				return result;
@@ -285,9 +287,8 @@ public class ServletInvocableHandlerMethod extends InvocableHandlerMethod {
 		public <T extends Annotation> boolean hasMethodAnnotation(Class<T> annotationType) {
 			// Ensure @ResponseBody-style handling for values collected from a reactive type
 			// even if actual return type is ResponseEntity<Flux<T>>
-			return (super.hasMethodAnnotation(annotationType) ||
-					(annotationType == ResponseBody.class &&
-							this.returnValue instanceof ReactiveTypeHandler.CollectedValuesList));
+			return (super.hasMethodAnnotation(annotationType) || (annotationType == ResponseBody.class &&
+					this.returnValue instanceof ReactiveTypeHandler.CollectedValuesList));
 		}
 
 		@Override

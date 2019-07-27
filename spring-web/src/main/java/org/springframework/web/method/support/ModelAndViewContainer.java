@@ -49,18 +49,37 @@ import org.springframework.web.bind.support.SimpleSessionStatus;
  */
 public class ModelAndViewContainer {
 
+	/**
+	 * 是否在 redirect 重定向时，忽略{@link #redirectModel}
+	 */
 	private boolean ignoreDefaultModelOnRedirect = false;
 
+	/**
+	 * 视图，Object 类型
+	 * 实际情况下，也可以是 String 类型的逻辑视图
+	 */
 	@Nullable
 	private Object view;
 
+	/**
+	 * 默认是用的 Model ，实际上是个 Map
+	 */
 	private final ModelMap defaultModel = new BindingAwareModelMap();
 
+	/**
+	 * redirect 重定向的 Model ，在重定向时使用。
+	 */
 	@Nullable
 	private ModelMap redirectModel;
 
+	/**
+	 * 处理器返回 redirect 视图的标识
+	 */
 	private boolean redirectModelScenario = false;
 
+	/**
+	 * Http 相应状态
+	 */
 	@Nullable
 	private HttpStatus status;
 
@@ -68,8 +87,14 @@ public class ModelAndViewContainer {
 
 	private final Set<String> bindingDisabled = new HashSet<>(4);
 
+	/**
+	 * 用于设置 SessionAttribute 的标示
+	 */
 	private final SessionStatus sessionStatus = new SimpleSessionStatus();
 
+	/**
+	 * 请求是否处理完的标示
+	 */
 	private boolean requestHandled = false;
 
 
@@ -138,10 +163,10 @@ public class ModelAndViewContainer {
 	 * a method argument) and {@code ignoreDefaultModelOnRedirect=false}.
 	 */
 	public ModelMap getModel() {
+		//是否使用默认 Model
 		if (useDefaultModel()) {
 			return this.defaultModel;
-		}
-		else {
+		} else {
 			if (this.redirectModel == null) {
 				this.redirectModel = new ModelMap();
 			}
@@ -163,6 +188,7 @@ public class ModelAndViewContainer {
 	 * model (redirect URL preparation). Use of this method may be needed for
 	 * advanced cases when access to the "default" model is needed regardless,
 	 * e.g. to save model attributes specified via {@code @SessionAttributes}.
+	 *
 	 * @return the default model (never {@code null})
 	 * @since 4.1.4
 	 */
@@ -191,6 +217,7 @@ public class ModelAndViewContainer {
 	/**
 	 * Provide an HTTP status that will be passed on to with the
 	 * {@code ModelAndView} used for view rendering purposes.
+	 *
 	 * @since 4.3
 	 */
 	public void setStatus(@Nullable HttpStatus status) {
@@ -199,6 +226,7 @@ public class ModelAndViewContainer {
 
 	/**
 	 * Return the configured HTTP status, if any.
+	 *
 	 * @since 4.3
 	 */
 	@Nullable
@@ -209,6 +237,7 @@ public class ModelAndViewContainer {
 	/**
 	 * Programmatically register an attribute for which data binding should not occur,
 	 * not even for a subsequent {@code @ModelAttribute} declaration.
+	 *
 	 * @param attributeName the name of the attribute
 	 * @since 4.3
 	 */
@@ -218,6 +247,7 @@ public class ModelAndViewContainer {
 
 	/**
 	 * Whether binding is disabled for the given model attribute.
+	 *
 	 * @since 4.3
 	 */
 	public boolean isBindingDisabled(String name) {
@@ -229,14 +259,14 @@ public class ModelAndViewContainer {
 	 * corresponding to an {@code @ModelAttribute(binding=true/false)} declaration.
 	 * <p>Note: While this flag will be taken into account by {@link #isBindingDisabled},
 	 * a hard {@link #setBindingDisabled} declaration will always override it.
+	 *
 	 * @param attributeName the name of the attribute
 	 * @since 4.3.13
 	 */
 	public void setBinding(String attributeName, boolean enabled) {
 		if (!enabled) {
 			this.noBinding.add(attributeName);
-		}
-		else {
+		} else {
 			this.noBinding.remove(attributeName);
 		}
 	}
@@ -334,19 +364,16 @@ public class ModelAndViewContainer {
 		if (!isRequestHandled()) {
 			if (isViewReference()) {
 				sb.append("reference to view with name '").append(this.view).append("'");
-			}
-			else {
+			} else {
 				sb.append("View is [").append(this.view).append(']');
 			}
 			if (useDefaultModel()) {
 				sb.append("; default model ");
-			}
-			else {
+			} else {
 				sb.append("; redirect model ");
 			}
 			sb.append(getModel());
-		}
-		else {
+		} else {
 			sb.append("Request handled directly");
 		}
 		return sb.toString();

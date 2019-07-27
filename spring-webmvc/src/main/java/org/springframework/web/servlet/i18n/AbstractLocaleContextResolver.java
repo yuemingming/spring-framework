@@ -31,11 +31,13 @@ import org.springframework.web.servlet.LocaleContextResolver;
  *
  * <p>Also provides pre-implemented versions of {@link #resolveLocale} and {@link #setLocale},
  * delegating to {@link #resolveLocaleContext} and {@link #setLocaleContext}.
+ * LocaleContextResolver 实现的抽象基类：提供对默认语言环境和默认时区的支持
+ * 还提供了 resolveLocale 和 setLocale 的预实现版本，委托给 resolveLocaleContext 和 setLocalContext
  *
  * @author Juergen Hoeller
- * @since 4.0
  * @see #setDefaultLocale
  * @see #setDefaultTimeZone
+ * @since 4.0
  */
 public abstract class AbstractLocaleContextResolver extends AbstractLocaleResolver implements LocaleContextResolver {
 

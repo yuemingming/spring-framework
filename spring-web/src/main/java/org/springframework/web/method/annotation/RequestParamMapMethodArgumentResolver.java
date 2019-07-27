@@ -71,7 +71,7 @@ public class RequestParamMapMethodArgumentResolver implements HandlerMethodArgum
 			NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
 
 		ResolvableType resolvableType = ResolvableType.forMethodParameter(parameter);
-
+		//MultiValueMap 类型的处理
 		if (MultiValueMap.class.isAssignableFrom(parameter.getParameterType())) {
 			// MultiValueMap
 			Class<?> valueType = resolvableType.as(MultiValueMap.class).getGeneric(1).resolve();

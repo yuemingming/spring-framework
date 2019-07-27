@@ -70,23 +70,29 @@ import org.springframework.web.util.UriComponentsBuilder;
  * @author Arjen Poutsma
  * @author Rossen Stoyanchev
  * @author Brian Clozel
- * @since 3.1
  * @see RequestParamMapMethodArgumentResolver
+ * @since 3.1
  */
 public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethodArgumentResolver
 		implements UriComponentsContributor {
 
 	private static final TypeDescriptor STRING_TYPE_DESCRIPTOR = TypeDescriptor.valueOf(String.class);
 
+	/**
+	 * 是否使用默认解决。
+	 * <p>
+	 * 这个变量有点绕，见 {@link #supportsParameter(MethodParameter)} 方法
+	 */
 	private final boolean useDefaultResolution;
 
 
 	/**
 	 * Create a new {@link RequestParamMethodArgumentResolver} instance.
+	 *
 	 * @param useDefaultResolution in default resolution mode a method argument
-	 * that is a simple type, as defined in {@link BeanUtils#isSimpleProperty},
-	 * is treated as a request parameter even if it isn't annotated, the
-	 * request parameter name is derived from the method parameter name.
+	 *                             that is a simple type, as defined in {@link BeanUtils#isSimpleProperty},
+	 *                             is treated as a request parameter even if it isn't annotated, the
+	 *                             request parameter name is derived from the method parameter name.
 	 */
 	public RequestParamMethodArgumentResolver(boolean useDefaultResolution) {
 		this.useDefaultResolution = useDefaultResolution;
@@ -94,16 +100,17 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 
 	/**
 	 * Create a new {@link RequestParamMethodArgumentResolver} instance.
-	 * @param beanFactory a bean factory used for resolving  ${...} placeholder
-	 * and #{...} SpEL expressions in default values, or {@code null} if default
-	 * values are not expected to contain expressions
+	 *
+	 * @param beanFactory          a bean factory used for resolving  ${...} placeholder
+	 *                             and #{...} SpEL expressions in default values, or {@code null} if default
+	 *                             values are not expected to contain expressions
 	 * @param useDefaultResolution in default resolution mode a method argument
-	 * that is a simple type, as defined in {@link BeanUtils#isSimpleProperty},
-	 * is treated as a request parameter even if it isn't annotated, the
-	 * request parameter name is derived from the method parameter name.
+	 *                             that is a simple type, as defined in {@link BeanUtils#isSimpleProperty},
+	 *                             is treated as a request parameter even if it isn't annotated, the
+	 *                             request parameter name is derived from the method parameter name.
 	 */
 	public RequestParamMethodArgumentResolver(@Nullable ConfigurableBeanFactory beanFactory,
-			boolean useDefaultResolution) {
+											  boolean useDefaultResolution) {
 
 		super(beanFactory);
 		this.useDefaultResolution = useDefaultResolution;
@@ -123,27 +130,31 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 	 */
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
+		// 有 @RequestParam 注解的情况
 		if (parameter.hasParameterAnnotation(RequestParam.class)) {
+			//如果是 Map 类型，则 @RequestParam 注解必须要有 name 属性
 			if (Map.class.isAssignableFrom(parameter.nestedIfOptional().getNestedParameterType())) {
 				RequestParam requestParam = parameter.getParameterAnnotation(RequestParam.class);
 				return (requestParam != null && StringUtils.hasText(requestParam.name()));
-			}
-			else {
+			} else {
+				//其他默认支持
 				return true;
 			}
-		}
-		else {
+		} else {
+			// 如果有 @RequestPart 注解，返回 false。即 @RequestPart 的优先级 > @RequestParam
 			if (parameter.hasParameterAnnotation(RequestPart.class)) {
 				return false;
 			}
+			// 获得参数，如果存在内嵌的情况
 			parameter = parameter.nestedIfOptional();
+			//如果 Multipart 参数，则返回 true 表示支持
 			if (MultipartResolutionDelegate.isMultipartArgument(parameter)) {
 				return true;
-			}
-			else if (this.useDefaultResolution) {
+				// 如果开启 userDefaultResolution 功能，则判断是否为普通类型。
+			} else if (this.useDefaultResolution) {
 				return BeanUtils.isSimpleProperty(parameter.getNestedParameterType());
-			}
-			else {
+			} else {
+				//其他不支持
 				return false;
 			}
 		}
@@ -158,6 +169,7 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 	@Override
 	@Nullable
 	protected Object resolveName(String name, MethodParameter parameter, NativeWebRequest request) throws Exception {
+		//情况一，HttpServletRequest 情况下的 MultipartFile 和 Part 的情况
 		HttpServletRequest servletRequest = request.getNativeRequest(HttpServletRequest.class);
 
 		if (servletRequest != null) {
@@ -166,7 +178,7 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 				return mpArg;
 			}
 		}
-
+		// 情况二，MultipartHttpServletRequest 情况下 MultipartFile 的情况
 		Object arg = null;
 		MultipartRequest multipartRequest = request.getNativeRequest(MultipartRequest.class);
 		if (multipartRequest != null) {
@@ -175,6 +187,7 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 				arg = (files.size() == 1 ? files.get(0) : files);
 			}
 		}
+		//普通参数获取
 		if (arg == null) {
 			String[] paramValues = request.getParameterValues(name);
 			if (paramValues != null) {
@@ -192,20 +205,18 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 		if (MultipartResolutionDelegate.isMultipartArgument(parameter)) {
 			if (servletRequest == null || !MultipartResolutionDelegate.isMultipartRequest(servletRequest)) {
 				throw new MultipartException("Current request is not a multipart request");
-			}
-			else {
+			} else {
 				throw new MissingServletRequestPartException(name);
 			}
-		}
-		else {
-			throw new MissingServletRequestParameterException(name,
-					parameter.getNestedParameterType().getSimpleName());
+		} else {
+			throw new MissingServletRequestParameterException(name, parameter.getNestedParameterType().getSimpleName());
 		}
 	}
 
 	@Override
 	public void contributeMethodArgument(MethodParameter parameter, @Nullable Object value,
-			UriComponentsBuilder builder, Map<String, Object> uriVariables, ConversionService conversionService) {
+										 UriComponentsBuilder builder, Map<String, Object> uriVariables,
+										 ConversionService conversionService) {
 
 		Class<?> paramType = parameter.getNestedParameterType();
 		if (Map.class.isAssignableFrom(paramType) || MultipartFile.class == paramType || Part.class == paramType) {
@@ -213,8 +224,8 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 		}
 
 		RequestParam requestParam = parameter.getParameterAnnotation(RequestParam.class);
-		String name = (requestParam == null || StringUtils.isEmpty(requestParam.name()) ?
-				parameter.getParameterName() : requestParam.name());
+		String name = (requestParam == null || StringUtils.isEmpty(requestParam.name()) ? parameter.getParameterName() :
+				requestParam.name());
 		Assert.state(name != null, "Unresolvable parameter name");
 
 		if (value == null) {
@@ -223,32 +234,27 @@ public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethod
 				return;
 			}
 			builder.queryParam(name);
-		}
-		else if (value instanceof Collection) {
+		} else if (value instanceof Collection) {
 			for (Object element : (Collection<?>) value) {
 				element = formatUriValue(conversionService, TypeDescriptor.nested(parameter, 1), element);
 				builder.queryParam(name, element);
 			}
-		}
-		else {
+		} else {
 			builder.queryParam(name, formatUriValue(conversionService, new TypeDescriptor(parameter), value));
 		}
 	}
 
 	@Nullable
-	protected String formatUriValue(
-			@Nullable ConversionService cs, @Nullable TypeDescriptor sourceType, @Nullable Object value) {
+	protected String formatUriValue(@Nullable ConversionService cs, @Nullable TypeDescriptor sourceType,
+									@Nullable Object value) {
 
 		if (value == null) {
 			return null;
-		}
-		else if (value instanceof String) {
+		} else if (value instanceof String) {
 			return (String) value;
-		}
-		else if (cs != null) {
+		} else if (cs != null) {
 			return (String) cs.convert(value, sourceType, STRING_TYPE_DESCRIPTOR);
-		}
-		else {
+		} else {
 			return value.toString();
 		}
 	}
